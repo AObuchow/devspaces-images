@@ -25,6 +25,11 @@ GIT_HASH_KEY="hash"
 PATH="remote_source_test"
 
 
+def assert_key_exists(key, dict):
+    if key not in dict:
+        missing_key_error(key, dict)
+
+
 # TODO: Make this used in a function that checks for key existence?
 def missing_key_error(key, dict):
     sys.exit("Expected '{}' in '{}' but was not present.".format(key, dict))
@@ -36,47 +41,33 @@ print("Reading {}".format(CONTAINER_YAML))
 
 with open(CONTAINER_YAML, 'r') as file:
     container_yaml_parsed = yaml.safe_load(file)
-
     #print(container_yaml_parsed)
+    assert_key_exists(REMOTE_SOURCES_KEY, container_yaml_parsed)
 
-    if REMOTE_SOURCES_KEY in container_yaml_parsed:
-        remote_sources_list = container_yaml_parsed[REMOTE_SOURCES_KEY]
+    remote_sources_list = container_yaml_parsed[REMOTE_SOURCES_KEY]
+    #print("Remote sources list: " + str(remote_sources_list))
+    for remote_source in remote_sources_list:
 
-        #print("Remote sources list: " + str(remote_sources_list))
+        # Validate remote source
+        assert_key_exists(NAME_KEY, remote_source)
+        assert_key_exists(REMOTE_SOURCE_KEY, remote_source)
 
-        for remote_source in remote_sources_list:
+        name = remote_source[NAME_KEY]
+        print("Processing remote source '{}'".format(name))
 
-            # Validate remote source
-            if NAME_KEY not in remote_source:
-                missing_key_error(NAME_KEY, remote_source)
-            if REMOTE_SOURCE_KEY not in remote_source:
-                missing_key_error(REMOTE_SOURCE_KEY, remote_source)
+        # TODO: Rename remote_source and git_source, kind of confusing
+        git_source = remote_source[REMOTE_SOURCE_KEY]
 
-            name = remote_source[NAME_KEY]
-            print("Processing remote source '{}'".format(name))
+        # Validate git source
+        assert_key_exists(REPO_KEY, git_source)
+        assert_key_exists(REF_KEY, git_source)
 
-            # TODO: Rename remote_source and git_source, kind of confusing
-            git_source = remote_source[REMOTE_SOURCE_KEY]
-
-            if REPO_KEY not in git_source:
-                missing_key_error(REPO_KEY, git_source)
-            if REF_KEY not in git_source:
-                missing_key_error(REF_KEY, git_source)
-
-            repo_url = git_source[REPO_KEY]
-            git_hash = git_source[REF_KEY]
-            
-            # TODO: Create directory for remote sources
-            # TODO: Git clone remote source & checkout to specific commit hash
-            # TODO: Put the remote source into a dict or object and do git cloning + folder creation afterwards. This way we first READ + VALIDATE the file, and if no errors we do cloning.
-
-            # TODO: Maybe use a class? kind of overkill but less messy than keys?
-            parsed_source = { NAME_KEY: name, REPO_URL_KEY: repo_url, GIT_HASH_KEY: git_hash}
-            parsed_remote_sources.append(parsed_source)
-
-    else:
-        missing_key_error(REMOTE_SOURCES_KEY, container_yaml_parsed)
-
+        repo_url = git_source[REPO_KEY]
+        git_hash = git_source[REF_KEY]
+        
+        # TODO: Maybe use a class? kind of overkill but less messy than keys?
+        parsed_source = { NAME_KEY: name, REPO_URL_KEY: repo_url, GIT_HASH_KEY: git_hash}
+        parsed_remote_sources.append(parsed_source)
 
 
 if len(parsed_remote_sources) > 0:
@@ -113,11 +104,6 @@ if len(parsed_remote_sources) > 0:
         cloned_repo.head.reset(index=True, working_tree=True)
 
         print("Successfully checked out ref {} for repo '{}'".format(ref, repo_name))
-
-
-
-
-
 
 
 
