@@ -8,7 +8,6 @@ from git import Repo  # pip install gitpython
 CONTAINER_YAML="container.yaml"
 REMOTE_SOURCES_KEY="remote_sources"
 
-
 # For individual remote_source objects in container.yaml
 NAME_KEY="name"
 REMOTE_SOURCE_KEY="remote_source"
@@ -16,23 +15,36 @@ REPO_KEY="repo"
 REF_KEY="ref"
 
 
-# For fully-parsed remote sources, ready to clone
-REPO_URL_KEY="url"
-GIT_HASH_KEY="hash"
-
 # Directory containing cloned remote sources
 # TODO: Rename?
 PATH="remote_source_test"
+
+
+
+class ParsedSource:
+    def __init__(self, name, repo_url, commit_hash):
+        self.name = name
+        self.repo_url = repo_url
+        self.commit_hash = commit_hash
+
+    def getName(self):
+        return self.name
+    
+    def getRepoURL(self):
+        return self.repo_url
+    
+    def getCommitHash(self):
+        return self.commit_hash
 
 
 def assert_key_exists(key, dict):
     if key not in dict:
         missing_key_error(key, dict)
 
-
-# TODO: Make this used in a function that checks for key existence?
 def missing_key_error(key, dict):
     sys.exit("Expected '{}' in '{}' but was not present.".format(key, dict))
+
+
 
 
 parsed_remote_sources = []
@@ -53,20 +65,19 @@ with open(CONTAINER_YAML, 'r') as file:
         assert_key_exists(REMOTE_SOURCE_KEY, remote_source)
 
         name = remote_source[NAME_KEY]
-        print("Processing remote source '{}'".format(name))
-
         # TODO: Rename remote_source and git_source, kind of confusing
         git_source = remote_source[REMOTE_SOURCE_KEY]
+        print("Parsing remote source '{}'".format(name))
+
 
         # Validate git source
         assert_key_exists(REPO_KEY, git_source)
         assert_key_exists(REF_KEY, git_source)
 
         repo_url = git_source[REPO_KEY]
-        git_hash = git_source[REF_KEY]
-        
-        # TODO: Maybe use a class? kind of overkill but less messy than keys?
-        parsed_source = { NAME_KEY: name, REPO_URL_KEY: repo_url, GIT_HASH_KEY: git_hash}
+        commit_hash = git_source[REF_KEY]
+        parsed_source = ParsedSource(name, repo_url, commit_hash)
+
         parsed_remote_sources.append(parsed_source)
 
 
@@ -78,21 +89,21 @@ if len(parsed_remote_sources) > 0:
         print("Created directory: {}".format(parent_directory_path))
     except OSError as error:  
         sys.exit("Unable to create directory {}: {}".format(parent_directory_path, repr(error)))
-
-
-    
+  
     for remote_source in parsed_remote_sources:
 
-        repo_name = remote_source[NAME_KEY]
-        ref = remote_source[GIT_HASH_KEY] 
+        repo_name = remote_source.getName()
+        repo_url = remote_source.getRepoURL()
+        ref = remote_source.getCommitHash()
+
 
         if repo_name == "python-deps":
             # TODO: Need to implement cloning only a subdirectory, I guess with git sparse checkout
             continue
 
-        repo_path = os.path.join(parent_directory_path, remote_source[NAME_KEY])
+        repo_path = os.path.join(parent_directory_path, repo_name)
         # TODO: Check for errors:
-        Repo.clone_from(remote_source[REPO_URL_KEY], repo_path)
+        Repo.clone_from(repo_url, repo_path)
         print("Successfully cloned '{}'".format(repo_name))
 
 
@@ -104,8 +115,6 @@ if len(parsed_remote_sources) > 0:
         cloned_repo.head.reset(index=True, working_tree=True)
 
         print("Successfully checked out ref {} for repo '{}'".format(ref, repo_name))
-
-
 
 else:
     sys.exit("No remote sources were parsed. Nothing to do.")
