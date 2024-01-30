@@ -15,10 +15,10 @@ jobs:
       VERSION: ${{ github.event.inputs.version }}
 
     steps:
-      - name: Allow subscription-manager in container
-        run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Setup subscription-manager
         run: dnf install -y subscription-manager
+      - name: Allow subscription-manager in container
+        run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Authenticate subscription-manager
         run: sudo subscription-manager register --username ${{ secrets.RH_SUBS_USER }} --password ${{ secrets.RH_SUBS_PASS }} --auto-attach
       - name: List available repos
