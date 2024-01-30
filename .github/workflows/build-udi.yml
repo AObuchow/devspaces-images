@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Allow subscription-manager in container
-        run: RUN sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
+        run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Setup subscription-manager
         run: dnf install -y subscription-manager
       - name: Authenticate subscription-manager
