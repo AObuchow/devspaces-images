@@ -23,6 +23,8 @@ jobs:
         run: sudo subscription-manager register --username ${{ secrets.RH_SUBS_USER }} --password ${{ secrets.RH_SUBS_PASS }} --auto-attach
       - name: List available repos
         run: sudo subscription-manager repos
+      - name: Unregister subscription manager
+        run: sudo subscription-manager unregister
 #      - name: Checkout
 #        uses: actions/checkout@v4
 #      - name: Set up QEMU
