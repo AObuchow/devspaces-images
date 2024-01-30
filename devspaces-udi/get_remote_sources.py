@@ -1,4 +1,4 @@
-import yaml
+import yaml  # TODO: Cleanup these imports so we only import functions we need 
 import sys
 import os
 from git import Repo  # pip install gitpython
@@ -17,8 +17,8 @@ REF_KEY="ref"
 
 # Directory containing cloned remote sources
 # TODO: Rename?
-PATH="remote_source_test"
-
+PATH="remote_sources"
+APP_PATH="app"
 
 
 class ParsedSource:

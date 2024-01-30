@@ -27,10 +27,10 @@ COPY ./remote_sources $REMOTE_SOURCES_DIR
 # Setup code ready builder repo
 
 # Copy entitlements
-COPY ./etc-pki-entitlement /etc/pki/entitlement
+COPY subscription-manager/etc-pki-entitlement /etc/pki/entitlement
 # Copy subscription manager configurations
-COPY ./rhsm-conf /etc/rhsm
-COPY ./rhsm-ca /etc/rhsm/ca
+COPY subscription-manager/rhsm-conf /etc/rhsm
+COPY subscription-manager/rhsm-ca /etc/rhsm/ca
 # Delete /etc/rhsm-host to use entitlements from the build container
 RUN rm /etc/rhsm-host
 
