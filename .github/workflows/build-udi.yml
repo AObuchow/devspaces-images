@@ -1,0 +1,29 @@
+name: Build udi
+
+on:
+    pull_request:
+      branches: [ devspaces-3-rhel-8 ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:34
+    env:
+      VERSION: ${{ github.event.inputs.version }}
+
+    steps:
+      - name: Setup subscription-manager
+        run: dnf install -y subscription-manager
+      - name: Authenticate subscription-manager
+        run: sudo subscription-manager register --username ${{ secrets.RH_SUBS_USER }} --password ${{ secrets.RH_SUBS_PASS }} --auto-attach
+      - name: List available repos
+        run: sudo subscription-manager repos
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v3
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v2
