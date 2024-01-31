@@ -15,8 +15,8 @@ jobs:
       VERSION: ${{ github.event.inputs.version }}
 
     steps:
-      - name: Setup subscription-manager
-        run: dnf install -y subscription-manager
+      - name: Setup subscription-manager & pip
+        run: dnf install -y subscription-manager pip
       - name: Allow subscription-manager in container
         run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Authenticate subscription-manager
@@ -27,6 +27,8 @@ jobs:
         run: sudo subscription-manager list --available | awk '/Pool ID:+/ {print $3}' | sudo subscription-manager attach --file -
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install python modules
+        run: pip install -r ./devspaces-udi/requirements.txt
 #      - name: Set up QEMU
 #        uses: docker/setup-qemu-action@v3
 #      - name: Set up Docker Buildx
