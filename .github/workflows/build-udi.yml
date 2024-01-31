@@ -15,8 +15,8 @@ jobs:
       VERSION: ${{ github.event.inputs.version }}
 
     steps:
-      - name: Setup subscription-manager & pip
-        run: dnf install -y subscription-manager pip
+      - name: Setup subscription-manager, pip & git
+        run: dnf install -y subscription-manager pip git
       - name: Allow subscription-manager in container
         run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Authenticate subscription-manager
