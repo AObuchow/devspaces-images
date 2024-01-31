@@ -50,4 +50,3 @@ jobs:
           tags: quay.io/aobuchow/universal-developer-image:rhel-udi-latest
       - name: Unregister subscription manager
         run: sudo subscription-manager unregister
-
