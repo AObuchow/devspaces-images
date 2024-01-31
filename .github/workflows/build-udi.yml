@@ -24,8 +24,6 @@ jobs:
         run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Authenticate subscription-manager
         run: sudo subscription-manager register --username ${{ secrets.RH_SUBS_USER }} --password ${{ secrets.RH_SUBS_PASS }} --auto-attach
-#      - name: List available repos
-#        run: sudo subscription-manager repos
       - name: Attach subscription-manager subscriptions
         run: sudo subscription-manager list --available | awk '/Pool ID:+/ {print $3}' | sudo subscription-manager attach --file -
       - name: Checkout
@@ -38,12 +36,18 @@ jobs:
         run: cd ./devspaces-udi/ && python3 ./setup_subscription_manager.py
       - name: Get remote sources
         run: cd ./devspaces-udi/ && python3 ./get_remote_sources.py
+      - name: Login to quay.io
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc #v2.2.0
+        with:
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+          registry: quay.io
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: devspaces-udi
-          push: false
-          tags: aobuchow/local-udi:latest
+          push: true
+          tags: quay.io/aobuchow/universal-developer-image:rhel-udi-latest
       - name: Unregister subscription manager
         run: sudo subscription-manager unregister
 
