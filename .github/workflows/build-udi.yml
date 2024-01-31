@@ -34,9 +34,9 @@ jobs:
 #      - name: Set up Docker Buildx
 #        uses: docker/setup-buildx-action@v2
       - name: Copy subscription-manager keys
-        run: python3 ./devspaces-udi/setup_subscription_manager.py
+        run: cd ./devspaces-udi/ && python3 ./setup_subscription_manager.py
       - name: Get remote sources
-        run: python3 ./devspaces-udi/get_remote_sources.py
+        run: cd ./devspaces-udi/ && python3 ./get_remote_sources.py
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
