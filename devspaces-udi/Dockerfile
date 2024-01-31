@@ -225,9 +225,9 @@ RUN \
         # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/x86_64/pipelines/1.13/os/Packages/o/openshift-pipelines-client-1.13.0-11230.el8.x86_64.rpm
         # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/s390x/pipelines/1.13/os/Packages/o/openshift-pipelines-client-1.13.0-11230.el8.s390x.rpm
         # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/ppc64le/pipelines/1.13/os/Packages/o/openshift-pipelines-client-1.13.0-11230.el8.ppc64le.rpm
-        openshift-clients-4.12.0-202312200531.p0.gd4c9e3c.assembly.stream.el8 openshift-pipelines-client-1.13.0-11230.el8 \
-        # TODO: Figure out how to install odo and helm. They're in the ocp-tools-4.12-for-rhel-8-x86_64-rpms repo
-        # odo-3.9.0-1.el8 helm-3.10.1-2.el8 \
+        openshift-clients-4.12.0-202312200531.p0.gd4c9e3c.assembly.stream.el8 \
+        # TODO: Figure out how to install odo, tkn/openshift-pipelines-client helm. Odo and helm are in the ocp-tools-4.12-for-rhel-8-x86_64-rpms repo
+        # odo-3.9.0-1.el8 helm-3.10.1-2.el8 openshift-pipelines-client-1.13.0-11230.el8 \
     && \
     dnf -y -q reinstall shadow-utils && \
     # fetch CVE updates (can exclude rpms to prevent update, eg., --exclude=odo)
