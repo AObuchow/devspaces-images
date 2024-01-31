@@ -3,6 +3,7 @@ name: Build udi
 on:
     pull_request:
       branches: [ devspaces-3-rhel-8 ]
+    workflow_dispatch:
 
 jobs:
 
@@ -15,6 +16,8 @@ jobs:
       VERSION: ${{ github.event.inputs.version }}
 
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Setup subscription-manager, pip & git
         run: dnf install -y subscription-manager pip git
       - name: Allow subscription-manager in container
@@ -31,8 +34,6 @@ jobs:
         run: pip install -r ./devspaces-udi/requirements.txt
 #      - name: Set up QEMU
 #        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
       - name: Copy subscription-manager keys
         run: cd ./devspaces-udi/ && python3 ./setup_subscription_manager.py
       - name: Get remote sources
