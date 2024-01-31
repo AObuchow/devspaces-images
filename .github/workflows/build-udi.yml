@@ -18,8 +18,8 @@ jobs:
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Setup subscription-manager, pip & git
-        run: dnf install -y subscription-manager pip git
+      - name: Install build tools
+        run: dnf install -y subscription-manager pip git docker
       - name: Allow subscription-manager in container
         run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Authenticate subscription-manager
