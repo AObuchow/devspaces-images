@@ -11,13 +11,9 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     container:
-      image: fedora:34
-    env:
-      VERSION: ${{ github.event.inputs.version }}
+      image: fedora:39
 
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
       - name: Install build tools
         run: dnf install -y subscription-manager pip git docker
       - name: Allow subscription-manager in container
@@ -36,6 +32,8 @@ jobs:
         run: cd ./devspaces-udi/ && python3 ./setup_subscription_manager.py
       - name: Get remote sources
         run: cd ./devspaces-udi/ && python3 ./get_remote_sources.py
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Login to quay.io
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc #v2.2.0
         with:
@@ -43,7 +41,7 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
           registry: quay.io
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: devspaces-udi
           push: true
