@@ -188,6 +188,13 @@ RUN subscription-manager repos --enable rhel-8-for-x86_64-appstream-rpms  && \
     #rm -rf /etc/pki/entitlement && \
     #rm -rf /etc/rhsm
 
+# We need this since we're in a different stage and cachito would usually inject this for us.
+# Needed to build php xdebug
+ENV REMOTE_SOURCES_DIR=/tmp/remote_sources
+
+RUN mkdir -p ${REMOTE_SOURCES_DIR}
+
+COPY ./remote_sources $REMOTE_SOURCES_DIR
 
 RUN \
     # install all the rpms and modules
@@ -389,7 +396,7 @@ RUN \
     ########################################################################
     set -x; \
     # compile xdebug from the container-yaml-name/app/ folder
-    cd $REMOTE_SOURCES_DIR/xdebug/app/ && \
+    cd $REMOTE_SOURCES_DIR/xdebug/ && \
     # ls -la . && \
     # According to https://xdebug.org/docs/faq#api, must have the same value from php -i | grep "Zend Extension Build" and phpize | grep "Extension Api"
     # Zend Extension Build => API320180731,NTS
@@ -422,9 +429,6 @@ xdebug.log=\${HOME}/xdebug.log" >> /etc/php.ini && \
 #     if [[ -f /usr/local/bin/kamel ]]; then rm -f /usr/local/bin/kamel; fi;
 
 # COPY --from=go-builder $REMOTE_SOURCES_DIR/camelk/app/kamel /usr/local/bin/kamel
-
-# We need this since we're in a different stage and cachito would usually inject this for us
-ENV REMOTE_SOURCES_DIR=/tmp/remote_sources
 
 # see container.yaml
 COPY --from=go-builder $REMOTE_SOURCES_DIR/gopls/gopls/gopls $HOME/go/bin/gopls
