@@ -21,10 +21,8 @@ jobs:
         run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
       - name: Authenticate subscription-manager
         run: sudo subscription-manager register --username ${{ secrets.RH_SUBS_USER }} --password ${{ secrets.RH_SUBS_PASS }} --auto-attach
-      - name: Attach subscription-manager
-        run: sudo subscription-manager attach --auto
-      - name: List available repos
-        run: sudo subscription-manager repos
+#      - name: List available repos
+#        run: sudo subscription-manager repos
       - name: Attach subscription-manager subscriptions
         run: sudo subscription-manager list --available | awk '/Pool ID:+/ {print $3}' | sudo subscription-manager attach --file -
       - name: Checkout
