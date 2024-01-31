@@ -25,6 +25,8 @@ jobs:
         run: sudo subscription-manager attach --auto
       - name: List available repos
         run: sudo subscription-manager repos
+      - name: Attach subscription-manager subscriptions
+        run: sudo subscription-manager list --available | awk '/Pool ID:+/ {print $3}' | sudo subscription-manager attach --file -
       - name: Checkout
         uses: actions/checkout@v4
 #      - name: Set up QEMU
