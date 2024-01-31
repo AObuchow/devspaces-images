@@ -41,9 +41,9 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
+          context: devspaces-udi
           push: false
           tags: aobuchow/local-udi:latest
-          file: ./devspaces-udi/Dockerfile
       - name: Unregister subscription manager
         run: sudo subscription-manager unregister
 
