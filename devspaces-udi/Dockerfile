@@ -433,12 +433,9 @@ xdebug.log=\${HOME}/xdebug.log" >> /etc/php.ini && \
 # see container.yaml
 COPY --from=go-builder $REMOTE_SOURCES_DIR/gopls/gopls/gopls $HOME/go/bin/gopls
 COPY --from=go-builder $REMOTE_SOURCES_DIR/kubedock/kubedock $HOME/go/bin/kubedock
-
-# TODO: Disabled until I fix texinfo dependency req for stow
 COPY --from=go-builder $REMOTE_SOURCES_DIR/stow/build/bin/ /usr/bin/
 COPY --from=go-builder $REMOTE_SOURCES_DIR/stow/build/share/ /usr/share/
 
-# TODO: Re-enable when stow is built
 # Create symbolic links from /home/tooling/ -> /home/user/
 RUN stow . -t /home/user/ -d /home/tooling/ --no-folding && \
     # .viminfo cannot be a symbolic link for security reasons, so copy it to /home/user/
