@@ -11,60 +11,32 @@
 # use rhel8/ for Brew, not ubi8/
 # can pin to specific tag filter using rhel8/go-toolset#^1.17
 # https://registry.access.redhat.com/rhel8/go-toolset
-
-# USE UBI8 to get access to needed repos for building stow
-FROM registry.access.redhat.com/ubi8/go-toolset:1.20.10-3 as go-builder
+FROM rhel8/go-toolset:1.20.10-3 as go-builder
 
 USER root
 
-ENV REMOTE_SOURCES_DIR=/tmp/remote_sources
-
-RUN mkdir -p ${REMOTE_SOURCES_DIR}
-
-COPY ./remote_sources $REMOTE_SOURCES_DIR
-
-
-# Setup code ready builder repo
-
-# Copy entitlements
-COPY subscription-manager/etc-pki-entitlement /etc/pki/entitlement
-# Copy subscription manager configurations
-COPY subscription-manager/rhsm-conf /etc/rhsm
-COPY subscription-manager/rhsm-ca /etc/rhsm/ca
-# Delete /etc/rhsm-host to use entitlements from the build container
-RUN rm /etc/rhsm-host
-
-RUN dnf install -y subscription-manager
-
-# Initialize /etc/yum.repos.d/redhat.repo
-# See https://access.redhat.com/solutions/1443553
-RUN dnf repolist --disablerepo=* 
-
-RUN subscription-manager repos --enable codeready-builder-for-rhel-8-x86_64-rpms
+COPY $REMOTE_SOURCES $REMOTE_SOURCES_DIR
 
 RUN \
     ########################################################################
     # Build all Golang projects fetched from Cachito
     ########################################################################
-    dnf -y -q install golang make gzip which && \
-    # TODO: can't find package for openshift-clients
-    # dnf -y -q isntall openshift-clients
+    dnf -y -q install golang make gzip which openshift-clients && \
     # BEGIN Gopls
     mkdir /home/tooling/go/bin -p && \
-    cd $REMOTE_SOURCES_DIR/gopls && \
+    cd $REMOTE_SOURCES_DIR/gopls/app/gopls && \
     # gopls must refer to tools as local dependency, which is located one dir above in the project
     echo 'replace golang.org/x/tools => ../' >> go.mod && \
     # build gopls application with dependencies resolved by Cachito (which are also resolved for 'tools' dependency)
-    #source $REMOTE_SOURCES_DIR/gopls/cachito.env && \
-    cd gopls && \
+    source $REMOTE_SOURCES_DIR/gopls/cachito.env && \
     GO111MODULE=on go build -o gopls && \
     ./gopls version && \
     # END Gopls
 
     # BEGIN Kubedock
-    cd $REMOTE_SOURCES_DIR/kubedock && \
+    cd $REMOTE_SOURCES_DIR/kubedock/app && \
     # build kubedock application with dependencies resolved by Cachito
-    # source $REMOTE_SOURCES_DIR/kubedock/cachito.env && \
+    source $REMOTE_SOURCES_DIR/kubedock/cachito.env && \
     LDFLAGS="-X github.com/joyrex2001/kubedock/internal/config.Date=`date -u +%Y%m%d-%H%M%S`  \
      -X github.com/joyrex2001/kubedock/internal/config.Build=9d21955b52e4905d916d24e724dcad195aef3515   \
      -X github.com/joyrex2001/kubedock/internal/config.Version=0.11.0  \
@@ -76,7 +48,7 @@ RUN \
 
     # CRW-3193 disable until we have a camel-k sample again
     # BEGIN Kamel
-    # cd $REMOTE_SOURCES_DIR/camelk && \
+    # cd $REMOTE_SOURCES_DIR/camelk/app && \
     # source $REMOTE_SOURCES_DIR/camelk/cachito.env && \
     # make build-kamel && \
     # ./kamel version && \
@@ -84,17 +56,17 @@ RUN \
 
     # BEGIN stow
     dnf -y -q install perl texinfo texinfo-tex git && \
-    cd $REMOTE_SOURCES_DIR/stow && \
-    mkdir -p $REMOTE_SOURCES_DIR/stow/build && \
+    cd $REMOTE_SOURCES_DIR/stow/app && \
+    mkdir -p $REMOTE_SOURCES_DIR/stow/app/build && \
     autoreconf -iv && \
-    ./configure --prefix=$REMOTE_SOURCES_DIR/stow/build && \
+    ./configure --prefix=$REMOTE_SOURCES_DIR/stow/app/build && \
     make install && \
-    cd $REMOTE_SOURCES_DIR/stow/build/bin/ && \
+    cd $REMOTE_SOURCES_DIR/stow/app/build/bin/ && \
     ./stow --version
     # END stow
 
 # https://registry.access.redhat.com/ubi8-minimal
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9-1029
+FROM ubi8-minimal:8.9-1029
 
 USER root
 
@@ -140,7 +112,7 @@ LABEL summary="$SUMMARY" \
       io.openshift.tags="$PRODNAME,$COMPNAME" \
       com.redhat.component="$PRODNAME-$COMPNAME-container" \
       name="$PRODNAME/$COMPNAME" \
-      version="3.13" \
+      version="3.12" \
       license="EPLv2" \
       maintainer="Nick Boldt <nboldt@redhat.com>" \
       io.openshift.expose-services="" \
@@ -161,33 +133,6 @@ COPY --chown=0:0 etc/.stow-local-ignore /home/tooling/
 ########################################################################
 # Common Installations and Configuration
 ########################################################################
-
-
-# IMPORTANT: We setup subscription manager related configuration to enable the repo's that brew would normally provide access to
-
-# Copy entitlements
-COPY ./etc-pki-entitlement /etc/pki/entitlement
-# Copy subscription manager configurations
-COPY ./rhsm-conf /etc/rhsm
-COPY ./rhsm-ca /etc/rhsm/ca
-# Delete /etc/rhsm-host to use entitlements from the build container
-RUN rm /etc/rhsm-host
-
-RUN microdnf install -y subscription-manager
-
-# Initialize /etc/yum.repos.d/redhat.repo
-# See https://access.redhat.com/solutions/1443553
-RUN microdnf repolist --disablerepo=* 
-
-RUN subscription-manager repos --enable rhel-8-for-x86_64-appstream-rpms  && \
-    subscription-manager repos --enable rhocp-4.12-for-rhel-8-x86_64-rpms 
-    #&& \
-    #microdnf -y update && \
-    #microdnf -y install java-11-openjdk-src && \
-    # Remove entitlements and Subscription Manager configs
-    #rm -rf /etc/pki/entitlement && \
-    #rm -rf /etc/rhsm
-
 
 RUN \
     # install all the rpms and modules
@@ -219,15 +164,10 @@ RUN \
         # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/x86_64/ocp/tools/4.12/os/Packages/h/helm-3.10.1-2.el8.x86_64.rpm
         # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/s390x/ocp/tools/4.12/os/Packages/h/helm-3.10.1-2.el8.s390x.rpm
         # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/ppc64le/ocp/tools/4.12/os/Packages/h/helm-3.10.1-2.el8.ppc64le.rpm
-        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/x86_64/rhocp/4.12/os/Packages/o/openshift-clients-4.12.0-202312200531.p0.gd4c9e3c.assembly.stream.el8.x86_64.rpm
-        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/s390x/rhocp/4.12/os/Packages/o/openshift-clients-4.12.0-202312200531.p0.gd4c9e3c.assembly.stream.el8.s390x.rpm
-        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/ppc64le/rhocp/4.12/os/Packages/o/openshift-clients-4.12.0-202312200531.p0.gd4c9e3c.assembly.stream.el8.ppc64le.rpm
-        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/x86_64/pipelines/1.13/os/Packages/o/openshift-pipelines-client-1.13.0-11230.el8.x86_64.rpm
-        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/s390x/pipelines/1.13/os/Packages/o/openshift-pipelines-client-1.13.0-11230.el8.s390x.rpm
-        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/ppc64le/pipelines/1.13/os/Packages/o/openshift-pipelines-client-1.13.0-11230.el8.ppc64le.rpm
-        openshift-clients-4.12.0-202312200531.p0.gd4c9e3c.assembly.stream.el8 openshift-pipelines-client-1.13.0-11230.el8 \
-        # TODO: Figure out how to install odo and helm. They're in the ocp-tools-4.12-for-rhel-8-x86_64-rpms repo
-        # odo-3.9.0-1.el8 helm-3.10.1-2.el8 \
+        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/x86_64/rhocp/4.12/os/Packages/o/openshift-clients-4.12.0-202311221849.p0.gd2ac7e1.assembly.stream.el8.x86_64.rpm
+        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/s390x/rhocp/4.12/os/Packages/o/openshift-clients-4.12.0-202311221849.p0.gd2ac7e1.assembly.stream.el8.s390x.rpm
+        # http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/ppc64le/rhocp/4.12/os/Packages/o/openshift-clients-4.12.0-202311221849.p0.gd2ac7e1.assembly.stream.el8.ppc64le.rpm
+        odo-3.9.0-1.el8 helm-3.10.1-2.el8 openshift-clients-4.12.0-202311221849.p0.gd2ac7e1.assembly.stream.el8 \
     && \
     dnf -y -q reinstall shadow-utils && \
     # fetch CVE updates (can exclude rpms to prevent update, eg., --exclude=odo)
@@ -423,18 +363,12 @@ xdebug.log=\${HOME}/xdebug.log" >> /etc/php.ini && \
 
 # COPY --from=go-builder $REMOTE_SOURCES_DIR/camelk/app/kamel /usr/local/bin/kamel
 
-# We need this since we're in a different stage and cachito would usually inject this for us
-ENV REMOTE_SOURCES_DIR=/tmp/remote_sources
-
 # see container.yaml
-COPY --from=go-builder $REMOTE_SOURCES_DIR/gopls/gopls/gopls $HOME/go/bin/gopls
-COPY --from=go-builder $REMOTE_SOURCES_DIR/kubedock/kubedock $HOME/go/bin/kubedock
+COPY --from=go-builder $REMOTE_SOURCES_DIR/gopls/app/gopls/gopls $HOME/go/bin/gopls
+COPY --from=go-builder $REMOTE_SOURCES_DIR/kubedock/app/kubedock $HOME/go/bin/kubedock
+COPY --from=go-builder $REMOTE_SOURCES_DIR/stow/app/build/bin/ /usr/bin/
+COPY --from=go-builder $REMOTE_SOURCES_DIR/stow/app/build/share/ /usr/share/
 
-# TODO: Disabled until I fix texinfo dependency req for stow
-COPY --from=go-builder $REMOTE_SOURCES_DIR/stow/build/bin/ /usr/bin/
-COPY --from=go-builder $REMOTE_SOURCES_DIR/stow/build/share/ /usr/share/
-
-# TODO: Re-enable when stow is built
 # Create symbolic links from /home/tooling/ -> /home/user/
 RUN stow . -t /home/user/ -d /home/tooling/ --no-folding && \
     # .viminfo cannot be a symbolic link for security reasons, so copy it to /home/user/
@@ -478,7 +412,6 @@ RUN \
     echo -n "yq:     "; yq --version; \
     echo "========" && \
     echo -n "oc:      "; oc version; \
-    echo -n "tkn:     "; tkn version; \
     echo -n "odo:     "; odo version; \
     echo -n "helm:    "; helm version --short --client; \
     echo -n "kubectl: "; kubectl version --short --client=true; \
