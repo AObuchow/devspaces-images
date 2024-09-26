@@ -1,0 +1,4 @@
+GitPython
+PyYAML==6.0.1
+PyYAML==6.0.1
+setuptools==67.7.2

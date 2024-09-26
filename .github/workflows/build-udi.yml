@@ -1,0 +1,48 @@
+name: Build udi
+
+on:
+    pull_request:
+      branches: [ devspaces-3-rhel-8 ]
+    workflow_dispatch:
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:34
+    env:
+      VERSION: ${{ github.event.inputs.version }}
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Setup subscription-manager, pip & git
+        run: dnf install -y subscription-manager pip git
+      - name: Allow subscription-manager in container
+        run: sed -i 's/\(def in_container():\)/\1\n    return False/g' /usr/lib64/python*/*-packages/rhsm/config.py
+      - name: Authenticate subscription-manager
+        run: sudo subscription-manager register --username ${{ secrets.RH_SUBS_USER }} --password ${{ secrets.RH_SUBS_PASS }} --auto-attach
+#      - name: List available repos
+#        run: sudo subscription-manager repos
+      - name: Attach subscription-manager subscriptions
+        run: sudo subscription-manager list --available | awk '/Pool ID:+/ {print $3}' | sudo subscription-manager attach --file -
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install python modules
+        run: pip install -r ./devspaces-udi/requirements.txt
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v3
+      - name: Copy subscription-manager keys
+        run: cd ./devspaces-udi/ && python3 ./setup_subscription_manager.py
+      - name: Get remote sources
+        run: cd ./devspaces-udi/ && python3 ./get_remote_sources.py
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: devspaces-udi
+          push: false
+          tags: aobuchow/local-udi:latest
+      - name: Unregister subscription manager
+        run: sudo subscription-manager unregister
